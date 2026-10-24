@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "cheatsheet-gametest",
+  "version": "0.1.0",
+  "name": "Cheat Sheet GameTests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "com.einsteinmods.cheatsheet.gametest.OrePlacementGameTest",
+      "com.einsteinmods.cheatsheet.gametest.BrewingRecipeGameTest",
+      "com.einsteinmods.cheatsheet.gametest.TrimTemplateGameTest",
+      "com.einsteinmods.cheatsheet.gametest.MusicDiscGameTest",
+      "com.einsteinmods.cheatsheet.gametest.DyeRecipeGameTest",
+      "com.einsteinmods.cheatsheet.gametest.VillagerTradeGameTest",
+      "com.einsteinmods.cheatsheet.gametest.WorkstationRecipeGameTest",
+      "com.einsteinmods.cheatsheet.gametest.DioramaBlocksGameTest",
+      "com.einsteinmods.cheatsheet.gametest.ConduitMaterialsGameTest",
+      "com.einsteinmods.cheatsheet.gametest.BreedingFoodGameTest",
+      "com.einsteinmods.cheatsheet.gametest.AnimalOriginGameTest",
+      "com.einsteinmods.cheatsheet.gametest.AnimalVariantGameTest"
+    ],
+    "fabric-client-gametest": [
+      "com.einsteinmods.cheatsheet.gametest.CheatSheetScreenshotsClientGameTest"
+    ]
+  }
+}

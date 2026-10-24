@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "cheatsheet",
+  "version": "${version}",
+  "name": "Cheat Sheet",
+  "description": "A Minecraft cheat sheet one click away: ore heights, enchantments, potions, armor trims, music discs and more, drawn as at-a-glance sheets right in the pause menu.",
+  "authors": [
+    "Jahel Cuadrado"
+  ],
+  "contact": {
+    "homepage": "https://github.com/JahelCuadrado/cheat-sheet",
+    "sources": "https://github.com/JahelCuadrado/cheat-sheet",
+    "issues": "https://github.com/JahelCuadrado/cheat-sheet/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/cheatsheet/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.einsteinmods.cheatsheet.client.CheatSheetClient"
+    ],
+    "modmenu": [
+      "com.einsteinmods.cheatsheet.client.config.ModMenuIntegration"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "recommends": {
+    "modmenu": "*"
+  }
+}
