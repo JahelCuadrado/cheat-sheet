@@ -43,9 +43,39 @@ public enum ZoomSize {
       throw new IllegalArgumentException(
           "bad zoom: sheet " + sheetScale + ", card " + cardWidth + "x" + cardHeight);
     }
-    int byFactor = Math.max(sheetScale + 1, sheetScale * maxHalves / HALVES);
-    int byWidth = windowWidth * maxPercent / PERCENT / cardWidth;
-    int byHeight = windowHeight * maxPercent / PERCENT / cardHeight;
-    return Math.max(sheetScale, Math.min(byFactor, Math.min(byWidth, byHeight)));
+    int byHeight = share(windowHeight) / cardHeight;
+    return Math.max(
+        sheetScale,
+        Math.min(byFactor(sheetScale), Math.min(share(windowWidth) / cardWidth, byHeight)));
+  }
+
+  /**
+   * {@link #scale} for a card that scrolls inside the zoom: its height does not count, so a tall
+   * card keeps the scale of its width instead of shrinking to fit.
+   */
+  public int scrollingScale(int sheetScale, int windowWidth, int cardWidth) {
+    if (sheetScale <= 0 || cardWidth <= 0) {
+      throw new IllegalArgumentException("bad zoom: sheet " + sheetScale + ", card " + cardWidth);
+    }
+    return Math.max(sheetScale, Math.min(byFactor(sheetScale), share(windowWidth) / cardWidth));
+  }
+
+  /**
+   * Card pixels of height a scrolling card shows at {@code scale}: all of it, or what fits the
+   * {@link #LARGE} share of a window of {@code windowHeight} pixels, at least one pixel. Whatever
+   * its size, a card that is read top to bottom shows as much as the window allows.
+   */
+  public int scrollingViewport(int windowHeight, int scale, int cardHeight) {
+    return Math.max(1, Math.min(cardHeight, LARGE.share(windowHeight) / scale));
+  }
+
+  /** This size's largest scale by its factor, at least one step above the sheet. */
+  private int byFactor(int sheetScale) {
+    return Math.max(sheetScale + 1, sheetScale * maxHalves / HALVES);
+  }
+
+  /** This size's share of {@code windowSide} pixels. */
+  private int share(int windowSide) {
+    return windowSide * maxPercent / PERCENT;
   }
 }

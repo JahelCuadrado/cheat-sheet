@@ -36,8 +36,8 @@ final class FittedText {
 
   /**
    * {@code text} (one style) with every word wider than {@code room} broken into hyphenated pieces
-   * on lines of their own, so wrapping it at {@code room} never splits a word without a hyphen. The
-   * same text when no word is that wide.
+   * on lines of their own (after a hyphen of the word's own when one fits), so wrapping it at
+   * {@code room} never splits a word without a hyphen. The same text when no word is that wide.
    */
   static Component hyphenated(Font font, Component text, int room) {
     Style style = text.getStyle();
@@ -56,6 +56,14 @@ final class FittedText {
       }
       changed = true;
       while (font.width(Component.literal(rest).withStyle(style)) > room) {
+        // A word with a hyphen of its own breaks there first: "Quasi-" / "connectivity".
+        String head = font.getSplitter().plainHeadByWidth(rest, room, style);
+        int ownHyphen = head.lastIndexOf(HYPHEN);
+        if (ownHyphen > 0) {
+          out.append(rest, 0, ownHyphen + 1).append(LINE_BREAK);
+          rest = rest.substring(ownHyphen + 1);
+          continue;
+        }
         String piece = font.getSplitter().plainHeadByWidth(rest, pieceRoom, style);
         if (piece.isEmpty()) {
           piece = rest.substring(0, 1);

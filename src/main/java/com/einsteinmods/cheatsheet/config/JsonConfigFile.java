@@ -9,6 +9,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,21 +33,32 @@ public final class JsonConfigFile<T extends Record> {
 
   /** Reads the file; writes and returns defaults when it is missing or unreadable. */
   public T load() {
+    Optional<T> value = read();
+    if (value.isPresent()) {
+      return value.get();
+    }
+    save(defaults);
+    return defaults;
+  }
+
+  /**
+   * Reads the file without writing anything: empty when it is missing or unreadable (logged), so a
+   * hand-edited file with a mistake stays as it is until the next save.
+   */
+  public Optional<T> read() {
     if (Files.notExists(path)) {
-      save(defaults);
-      return defaults;
+      return Optional.empty();
     }
     try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
       T value = GSON.fromJson(reader, type);
       if (value != null) {
-        return value;
+        return Optional.of(value);
       }
       LOGGER.warn("Config file {} is empty; using defaults", path);
     } catch (IOException | JsonParseException exception) {
       LOGGER.warn("Config file {} is invalid; using defaults", path, exception);
     }
-    save(defaults);
-    return defaults;
+    return Optional.empty();
   }
 
   public void save(T value) {

@@ -272,15 +272,24 @@ public final class TrimsSheet implements SheetSource {
       name = pattern.map(found -> found.value().description()).orElse(stack.getHoverName());
     }
     List<Component> details =
-        List.of(
-            text(context, "where." + template.source().key()),
-            text(
-                context,
-                "copy",
-                TrimTable.COPY_DIAMONDS,
-                context.stack(template.copyBlockId()).getHoverName()));
+        List.of(text(context, "where." + template.source().key()), copyLine(context, template));
     return new Design(
         template, stack, pattern, name, name, Tooltips.of(context.font(), name, details));
+  }
+
+  /** The copy recipe: one block, or the two a Bolt template's recipe accepts. */
+  private static Component copyLine(SheetContext context, TrimTemplate template) {
+    List<String> blocks = template.copyBlockIds();
+    Component block = context.stack(blocks.getFirst()).getHoverName();
+    if (blocks.size() == 1) {
+      return text(context, "copy", TrimTable.COPY_DIAMONDS, block);
+    }
+    return text(
+        context,
+        "copy_either",
+        TrimTable.COPY_DIAMONDS,
+        block,
+        context.stack(blocks.getLast()).getHoverName());
   }
 
   /**

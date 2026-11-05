@@ -984,8 +984,8 @@ public final class VillagersSheet implements SheetSource {
     return switch (trade.kind()) {
       case PLAIN, POTION -> Optional.empty();
       case ENCHANTED_BOOK -> {
-        CountRange treasure = TradePrices.treasureBookPrice();
-        yield Optional.of(text(context, "kind.enchanted_book", range(treasure)));
+        CountRange mending = TradePrices.mendingBookPrice();
+        yield Optional.of(text(context, "kind.enchanted_book", range(mending)));
       }
       default -> Optional.of(text(context, "kind." + trade.kind().name().toLowerCase(Locale.ROOT)));
     };

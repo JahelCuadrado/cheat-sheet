@@ -2,6 +2,7 @@ package com.einsteinmods.cheatsheet.client.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.einsteinmods.cheatsheet.config.JsonConfigFile;
 import com.einsteinmods.cheatsheet.core.SheetScale;
@@ -49,6 +50,16 @@ class ClientSettingsTest {
   }
 
   @Test
+  void hiddenStartAndLastTabsFallBackToTheFirstShown(@TempDir Path directory) throws IOException {
+    ClientSettings settings =
+        loadFrom(
+            directory,
+            "{\"schemaVersion\": 2, \"startTab\": \"potions\", \"lastOpenedTab\": \"potions\"}");
+    assertEquals(1, settings.startTabIndex());
+    assertEquals(0, settings.startTabIndex(List.of("ores")));
+  }
+
+  @Test
   void unknownStartTabFallsBackToLastOpened(@TempDir Path directory) throws IOException {
     ClientSettings settings =
         loadFrom(
@@ -81,7 +92,7 @@ class ClientSettingsTest {
   @Test
   void sheetScaleIsReadBackAndUnknownValuesAreAuto(@TempDir Path directory) throws IOException {
     ClientSettings settings = new ClientSettings(file(directory), TABS);
-    settings.update(new ClientPreferences(true, StartTab.LAST_OPENED, "", SheetScale.THREE));
+    settings.update(new ClientPreferences(true, StartTab.LAST_OPENED, "", SheetScale.THREE, true));
     assertEquals("3", file(directory).load().sheetScale());
     assertEquals(ClientSettingsFile.CURRENT_SCHEMA_VERSION, file(directory).load().schemaVersion());
     assertEquals(
@@ -89,5 +100,23 @@ class ClientSettingsTest {
     ClientSettings unknown =
         loadFrom(directory, "{\"schemaVersion\": 2, \"sheetScale\": \"huge\"}");
     assertEquals(SheetScale.AUTO, unknown.preferences().sheetScale());
+  }
+
+  @Test
+  void versionTwoFileKeepsAskingBeforeDeleting(@TempDir Path directory) throws IOException {
+    ClientSettings settings = loadFrom(directory, "{\"schemaVersion\": 2, \"sheetScale\": \"3\"}");
+    assertTrue(settings.preferences().confirmCommandDelete());
+    assertEquals(SheetScale.THREE, settings.preferences().sheetScale());
+  }
+
+  @Test
+  void deleteWithoutAskingIsSavedAndReadBack(@TempDir Path directory) {
+    ClientSettings settings = new ClientSettings(file(directory), TABS);
+    settings.update(settings.preferences().withConfirmCommandDelete(false));
+    assertFalse(file(directory).load().confirmCommandDelete());
+    assertEquals(3, file(directory).load().schemaVersion());
+    assertFalse(new ClientSettings(file(directory), TABS).preferences().confirmCommandDelete());
+    settings.update(settings.preferences().withConfirmCommandDelete(true));
+    assertTrue(new ClientSettings(file(directory), TABS).preferences().confirmCommandDelete());
   }
 }

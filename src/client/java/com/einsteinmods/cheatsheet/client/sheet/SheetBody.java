@@ -21,6 +21,14 @@ public interface SheetBody {
   @Nullable List<FormattedCharSequence> tooltipAt(int localX, int localY, BodyShape shape);
 
   /**
+   * A left click at ({@code localX}, {@code localY}) from the body's corner; whether an element
+   * used it. By default nothing does.
+   */
+  default boolean mouseClicked(int localX, int localY, BodyShape shape) {
+    return false;
+  }
+
+  /**
    * Finds the card at ({@code localX}, {@code localY}) from the body's corner and writes its index
    * and bounds into {@code spot}; whether there is one. Called every frame for the hover highlight,
    * so it allocates nothing. By default the whole body is one card.

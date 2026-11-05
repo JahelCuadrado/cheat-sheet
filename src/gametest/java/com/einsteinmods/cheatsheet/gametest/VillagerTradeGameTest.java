@@ -39,6 +39,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.world.entity.npc.villager.VillagerProfession;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.trading.TradeSet;
 import net.minecraft.world.item.trading.TradeSets;
 import net.minecraft.world.item.trading.VillagerTrade;
@@ -363,6 +364,12 @@ public final class VillagerTradeGameTest {
       highest = Math.max(highest, enchantment.value().getMaxLevel());
     }
     expect("tradeable books", "max level", highest, TradePrices.MAX_BOOK_LEVEL, mismatches);
+    Holder<Enchantment> mending = enchantments.getOrThrow(Enchantments.MENDING);
+    expect(
+        "mending", "level", mending.value().getMaxLevel(), TradePrices.MENDING_LEVEL, mismatches);
+    if (!mending.is(EnchantmentTags.DOUBLE_TRADE_PRICE)) {
+      mismatches.add("mending: not in the double trade price tag");
+    }
   }
 
   private static void checkBartering(JsonElement table, List<String> mismatches) {

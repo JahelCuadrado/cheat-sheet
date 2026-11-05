@@ -9,6 +9,7 @@
       "com.einsteinmods.cheatsheet.gametest.OrePlacementGameTest",
       "com.einsteinmods.cheatsheet.gametest.BrewingRecipeGameTest",
       "com.einsteinmods.cheatsheet.gametest.TrimTemplateGameTest",
+      "com.einsteinmods.cheatsheet.gametest.BuiltInCommandEffectsGameTest",
       "com.einsteinmods.cheatsheet.gametest.MusicDiscGameTest",
       "com.einsteinmods.cheatsheet.gametest.DyeRecipeGameTest",
       "com.einsteinmods.cheatsheet.gametest.VillagerTradeGameTest",
@@ -17,7 +18,18 @@
       "com.einsteinmods.cheatsheet.gametest.ConduitMaterialsGameTest",
       "com.einsteinmods.cheatsheet.gametest.BreedingFoodGameTest",
       "com.einsteinmods.cheatsheet.gametest.AnimalOriginGameTest",
-      "com.einsteinmods.cheatsheet.gametest.AnimalVariantGameTest"
+      "com.einsteinmods.cheatsheet.gametest.AnimalVariantGameTest",
+      "com.einsteinmods.cheatsheet.gametest.BuiltInCommandsGameTest",
+      "com.einsteinmods.cheatsheet.gametest.RedstoneRulesGameTest",
+      "com.einsteinmods.cheatsheet.gametest.ComparatorSignalGameTest",
+      "com.einsteinmods.cheatsheet.gametest.RedstoneBuildsGameTest",
+      "com.einsteinmods.cheatsheet.gametest.BedrockBreakingGameTest",
+      "com.einsteinmods.cheatsheet.gametest.SculkSensorGameTest",
+      "com.einsteinmods.cheatsheet.gametest.RedstoneMechanicsGameTest",
+      "com.einsteinmods.cheatsheet.gametest.FarmRulesGameTest",
+      "com.einsteinmods.cheatsheet.gametest.CropRulesGameTest",
+      "com.einsteinmods.cheatsheet.gametest.ShulkerRulesGameTest",
+      "com.einsteinmods.cheatsheet.gametest.VillagerBedGameTest"
     ],
     "fabric-client-gametest": [
       "com.einsteinmods.cheatsheet.gametest.CheatSheetScreenshotsClientGameTest"

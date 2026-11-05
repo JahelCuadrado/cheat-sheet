@@ -36,7 +36,7 @@ public final class TrimTable {
           TrimTemplate.trim("shaper", TrimSource.TRAIL_RUINS, TERRACOTTA),
           TrimTemplate.trim("raiser", TrimSource.TRAIL_RUINS, TERRACOTTA),
           TrimTemplate.trim("host", TrimSource.TRAIL_RUINS, TERRACOTTA),
-          TrimTemplate.trim("bolt", TrimSource.TRIAL_VAULT, "copper_block"),
+          TrimTemplate.trim("bolt", TrimSource.TRIAL_VAULT, "copper_block", "waxed_copper_block"),
           TrimTemplate.trim("flow", TrimSource.OMINOUS_VAULT, "breeze_rod"),
           TrimTemplate.trim("rib", TrimSource.NETHER_FORTRESS, NETHERRACK),
           TrimTemplate.trim("snout", TrimSource.BASTION, "blackstone"),
@@ -44,7 +44,7 @@ public final class TrimTable {
               "netherite_upgrade_smithing_template",
               Optional.empty(),
               TrimSource.BASTION,
-              NETHERRACK),
+              List.of(NETHERRACK)),
           TrimTemplate.trim("spire", TrimSource.END_CITY, "purpur_block"));
 
   private TrimTable() {}

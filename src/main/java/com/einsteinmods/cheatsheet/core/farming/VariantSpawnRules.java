@@ -113,10 +113,10 @@ public final class VariantSpawnRules {
 
     private static boolean matches(Condition condition, String biomeId) {
       return switch (condition) {
-        case Always always -> true;
+        case Always _ -> true;
         case InBiomes biomes -> biomes.biomeIds().contains(biomeId);
-        case InStructures structures -> false;
-        case MoonBrightness moon -> false;
+        case InStructures _ -> false;
+        case MoonBrightness _ -> false;
       };
     }
   }

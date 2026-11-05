@@ -22,7 +22,7 @@ class TradePricesTest {
     // Level 1: 2 + 0 + 3 at least; level 5: 2 + 54 + 15 = 71 at most, clamped.
     assertEquals(new CountRange(5, 71), TradePrices.bookCost());
     assertEquals(new CountRange(5, 64), TradePrices.price(0, TradeKind.ENCHANTED_BOOK));
-    assertEquals(new CountRange(10, 64), TradePrices.treasureBookPrice());
+    assertEquals(new CountRange(10, 38), TradePrices.mendingBookPrice());
   }
 
   @Test

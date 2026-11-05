@@ -6,6 +6,7 @@ import com.einsteinmods.cheatsheet.client.sheet.Panels;
 import com.einsteinmods.cheatsheet.client.sheet.SheetElement;
 import com.einsteinmods.cheatsheet.client.sheet.ZoomCard;
 import com.einsteinmods.cheatsheet.core.ZoomSize;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -62,6 +63,11 @@ final class ZoomViews {
   /** {@code content} on a panel tinted {@code tint}, zoomed {@code size}. */
   static ZoomCard panel(SheetElement content, CardTint tint, ZoomSize size) {
     return new ElementCard(new TintedPanel(content, tint), size);
+  }
+
+  /** {@link #panel} that scrolls inside the zoom when taller than the room. */
+  static ZoomCard scrollingPanel(SheetElement content, CardTint tint, ZoomSize size) {
+    return new ElementCard(new TintedPanel(content, tint), size, true);
   }
 
   /**
@@ -225,6 +231,104 @@ final class ZoomViews {
         return null;
       }
       return content.tooltipAt(contentX, contentY, content.minWidth());
+    }
+
+    @Override
+    public boolean mouseClicked(int localX, int localY, int width) {
+      int contentX = localX - PADDING;
+      int contentY = localY - PADDING;
+      if (contentX < 0
+          || contentY < 0
+          || contentX >= content.minWidth()
+          || contentY >= content.height()) {
+        return false;
+      }
+      return content.mouseClicked(contentX, contentY, content.minWidth());
+    }
+  }
+
+  /**
+   * {@code head} (the quick look) on a tinted panel with a button under them that shows {@code
+   * details} below it, or hides them again: a scrolling zoom of {@link ZoomSize#SMALL} that is laid
+   * out again after each click. Both layouts share their elements, so pictures are added once.
+   */
+  static ZoomCard explained(
+      Font font,
+      List<SheetElement> head,
+      Component show,
+      Component hide,
+      SheetElement details,
+      CardTint tint,
+      int gap) {
+    int width = 0;
+    for (SheetElement part : head) {
+      width = Math.max(width, part.minWidth());
+    }
+    width = Math.max(width, details.minWidth());
+    List<SheetElement> collapsed = new ArrayList<>(head);
+    collapsed.add(new ExplanationButton(font, show, width));
+    List<SheetElement> expanded = new ArrayList<>(head);
+    expanded.add(new ExplanationButton(font, hide, width));
+    expanded.add(details);
+    return new ExpandableCard(
+        new ElementCard(
+            new TintedPanel(new LeftColumn(collapsed, gap), tint), ZoomSize.SMALL, true),
+        new ElementCard(
+            new TintedPanel(new LeftColumn(expanded, gap), tint), ZoomSize.SMALL, true));
+  }
+
+  /** A card shown short or long; a click on its button switches. */
+  private static final class ExpandableCard implements ZoomCard {
+    private final ZoomCard collapsed;
+    private final ZoomCard expanded;
+    private boolean open;
+
+    ExpandableCard(ZoomCard collapsed, ZoomCard expanded) {
+      this.collapsed = collapsed;
+      this.expanded = expanded;
+    }
+
+    private ZoomCard shown() {
+      return open ? expanded : collapsed;
+    }
+
+    @Override
+    public int width() {
+      return shown().width();
+    }
+
+    @Override
+    public int height() {
+      return shown().height();
+    }
+
+    @Override
+    public void extract(GuiGraphicsExtractor graphics, int x, int y) {
+      shown().extract(graphics, x, y);
+    }
+
+    @Override
+    public @Nullable List<FormattedCharSequence> tooltipAt(int localX, int localY) {
+      return shown().tooltipAt(localX, localY);
+    }
+
+    @Override
+    public @Nullable ZoomSize size() {
+      return shown().size();
+    }
+
+    @Override
+    public boolean scrolls() {
+      return true;
+    }
+
+    @Override
+    public boolean mouseClicked(int localX, int localY) {
+      if (!shown().mouseClicked(localX, localY)) {
+        return false;
+      }
+      open = !open;
+      return true;
     }
   }
 }

@@ -17,4 +17,17 @@ class ScrollRangeTest {
     assertEquals(100, ScrollRange.clamp(500, 300, 200));
     assertEquals(60, ScrollRange.clamp(60, 300, 200));
   }
+
+  @Test
+  void thumbShowsTheShareInView() {
+    assertEquals(50, ScrollRange.thumbHeight(400, 200, 100, 10));
+    assertEquals(10, ScrollRange.thumbHeight(4000, 200, 100, 10));
+  }
+
+  @Test
+  void thumbTravelsTheWholeTrack() {
+    assertEquals(0, ScrollRange.thumbOffset(0, 100, 150, 50));
+    assertEquals(50, ScrollRange.thumbOffset(50, 100, 150, 50));
+    assertEquals(100, ScrollRange.thumbOffset(100, 100, 150, 50));
+  }
 }

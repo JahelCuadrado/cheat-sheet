@@ -3,10 +3,16 @@ package com.einsteinmods.cheatsheet.gametest;
 import com.einsteinmods.cheatsheet.core.beacon.BeaconDioramas;
 import com.einsteinmods.cheatsheet.core.beacon.BeaconPyramid;
 import com.einsteinmods.cheatsheet.core.beacon.ConduitFrame;
+import com.einsteinmods.cheatsheet.core.mobfarms.MobFarm;
 import com.einsteinmods.cheatsheet.core.pictures.BlockSpec;
 import com.einsteinmods.cheatsheet.core.pictures.Diorama;
 import com.einsteinmods.cheatsheet.core.pictures.DioramaBlock;
 import com.einsteinmods.cheatsheet.core.pictures.Place;
+import com.einsteinmods.cheatsheet.core.redstone.ComparatorSignal;
+import com.einsteinmods.cheatsheet.core.redstone.RedstoneBuild;
+import com.einsteinmods.cheatsheet.core.redstone.RedstoneCard;
+import com.einsteinmods.cheatsheet.core.redstone.RedstoneDioramas;
+import com.einsteinmods.cheatsheet.core.redstone.TransparentBlock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,9 +25,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.properties.Property;
 
 /**
- * Every block of every diorama ({@link Place}, the beacon tab's pyramids and frame) names a real
- * block, and each of its properties exists with that value: the client draws an unknown spec as
- * air, silently.
+ * Every block of every diorama ({@link Place}, the beacon tab's pyramids and frame, the redstone
+ * tab's cards and builds) names a real block, and each of its properties exists with that value:
+ * the client draws an unknown spec as air, silently.
  */
 public final class DioramaBlocksGameTest {
   @GameTest
@@ -36,6 +42,37 @@ public final class DioramaBlocksGameTest {
     }
     dioramas.put("conduit frame", BeaconDioramas.conduitFrame(ConduitFrame.FULL_FRAME_BLOCKS));
     dioramas.put("conduit rings", BeaconDioramas.conduitRings(ConduitFrame.RINGS));
+    for (RedstoneCard card : RedstoneCard.values()) {
+      dioramas.put(card.name(), card.picture());
+    }
+    for (RedstoneBuild build : RedstoneBuild.values()) {
+      for (int step = 0; step < build.steps().size(); step++) {
+        dioramas.put(build.name() + " step " + (step + 1), build.steps().get(step));
+      }
+    }
+    for (TransparentBlock block : TransparentBlock.ALL) {
+      dioramas.put("transparent " + block.state(), block.picture());
+    }
+    dioramas.put("comparator compare", RedstoneDioramas.comparatorFromAbove(false));
+    dioramas.put("comparator subtract", RedstoneDioramas.comparatorFromAbove(true));
+    dioramas.put("comparator reading", RedstoneDioramas.comparatorReadingChest());
+    dioramas.put(
+        "comparator example",
+        RedstoneDioramas.comparatorExample(
+            ComparatorSignal.EXAMPLE_INPUT, ComparatorSignal.EXAMPLE_SUBTRACTED_SIDE, true));
+    List<Diorama> iron = RedstoneDioramas.ironMachine();
+    for (int step = 0; step < iron.size(); step++) {
+      dioramas.put("iron machine step " + (step + 1), iron.get(step));
+    }
+    dioramas.put("iron machine full", RedstoneDioramas.ironMachineFull());
+    List<Diorama> gold = RedstoneDioramas.goldMachine();
+    for (int step = 0; step < gold.size(); step++) {
+      dioramas.put("gold machine step " + (step + 1), gold.get(step));
+    }
+    dioramas.put("compact machine", RedstoneDioramas.compactMachine());
+    for (MobFarm farm : MobFarm.values()) {
+      dioramas.put(farm.name(), farm.picture());
+    }
     for (Map.Entry<String, Diorama> diorama : dioramas.entrySet()) {
       String place = diorama.getKey();
       for (DioramaBlock cell : diorama.getValue().blocks()) {

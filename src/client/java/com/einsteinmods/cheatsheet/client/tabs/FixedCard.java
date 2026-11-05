@@ -110,6 +110,30 @@ final class FixedCard implements SheetElement {
     return null;
   }
 
+  /** The click goes to the piece under it, in the piece's own coordinates. */
+  @Override
+  public boolean mouseClicked(int localX, int localY, int width) {
+    for (int row = 0; row < pieces.length; row++) {
+      if (localY < rowTops[row] || localY >= rowTops[row] + rowHeights[row]) {
+        continue;
+      }
+      SheetElement[] members = pieces[row];
+      for (int index = 0; index < members.length; index++) {
+        SheetElement piece = members[index];
+        int pieceX = localX - pieceXs[row][index];
+        int pieceY = localY - pieceYs[row][index];
+        if (pieceX >= 0
+            && pieceX < piece.minWidth()
+            && pieceY >= 0
+            && pieceY < piece.height()
+            && piece.mouseClicked(pieceX, pieceY, piece.minWidth())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private record Placed(SheetElement element, int x, int y) {}
 
   /** A plain rectangle: a slot's background, a divider, a bar. No tooltip. */

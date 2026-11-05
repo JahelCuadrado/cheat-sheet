@@ -39,6 +39,15 @@ public interface SheetElement {
   }
 
   /**
+   * A left click at ({@code localX}, {@code localY}) from the element's top-left corner (always
+   * inside its bounds); whether the element used it (a button). Elements that use clicks belong to
+   * tabs that do not zoom their cards ({@link SheetSource#zoomsCards}).
+   */
+  default boolean mouseClicked(int localX, int localY, int width) {
+    return false;
+  }
+
+  /**
    * What the zoom shows when the player clicks a card made of this element (a tile): a view laid
    * out for the zoom, or null (the default) for the element itself, bigger. Called once per click;
    * a view that builds anything keeps it for the next click.

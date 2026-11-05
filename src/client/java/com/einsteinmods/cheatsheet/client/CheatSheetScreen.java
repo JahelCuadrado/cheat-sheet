@@ -6,6 +6,7 @@ import com.einsteinmods.cheatsheet.client.picture.PictureAtlas;
 import com.einsteinmods.cheatsheet.client.sheet.Card;
 import com.einsteinmods.cheatsheet.client.sheet.CardSpot;
 import com.einsteinmods.cheatsheet.client.sheet.CardZoom;
+import com.einsteinmods.cheatsheet.client.sheet.ScrollBar;
 import com.einsteinmods.cheatsheet.client.sheet.Section;
 import com.einsteinmods.cheatsheet.client.sheet.Sheet;
 import com.einsteinmods.cheatsheet.client.sheet.SheetContext;
@@ -52,8 +53,12 @@ import org.jspecify.annotations.Nullable;
  * ({@link CardZoom}), as big as its tab or the card asks ({@link ZoomSize}). The sheet and the tab
  * bar stay drawn behind it, blurred (when the player's menu blur is on) and veiled, so the player
  * never leaves the sheet; the GUI scale does not change. Tooltips work inside the zoom. A click
- * outside the zoom or Escape closes it, and only then does Escape close the cheat sheet. A tab can
- * opt out ({@link SheetSource#zoomsCards}): no highlight, no zoom.
+ * outside the zoom or Escape closes it, and only then does Escape close the cheat sheet. The wheel
+ * scrolls a zoom that scrolls ({@link ZoomCard#scrolls()}), not the sheet behind it. A tab can opt
+ * out ({@link SheetSource#zoomsCards}): no highlight, no zoom; its elements may take clicks instead
+ * (buttons: {@link com.einsteinmods.cheatsheet.client.sheet.SheetElement#mouseClicked}). The tabs
+ * are the ones the screen is given, those available to the player when it opened ({@link
+ * SheetSource#availableFor}).
  *
  * <p>Cost: nothing while closed (no tick or render hook). Each sheet is built the first time its
  * tab is shown and kept while the screen lives (also across a visit to the settings); layout runs
@@ -77,9 +82,7 @@ public final class CheatSheetScreen extends Screen {
   private static final int SHEET_GAP = 4;
   private static final int CARD_GAP = 4;
   private static final int SCROLL_STEP = 24;
-  private static final int SCROLL_BAR_WIDTH = 3;
   private static final int SCROLL_BAR_INSET = 3;
-  private static final int MIN_THUMB_HEIGHT = 10;
 
   /**
    * Menu blur radius below which vanilla draws no blur ({@code Screen#extractBlurredBackground}).
@@ -143,7 +146,11 @@ public final class CheatSheetScreen extends Screen {
     this.keyMappings = keyMappings;
     this.sources = List.copyOf(sources);
     this.sheets = new Sheet[sources.size()];
-    this.selected = Math.clamp(settings.startTabIndex(), 0, sources.size() - 1);
+    List<String> ids = new ArrayList<>(sources.size());
+    for (SheetSource source : sources) {
+      ids.add(source.id());
+    }
+    this.selected = Math.clamp(settings.startTabIndex(ids), 0, sources.size() - 1);
   }
 
   /** Index of the tab shown. */
@@ -204,6 +211,25 @@ public final class CheatSheetScreen extends Screen {
       sheets[index] = sheet;
     }
     return sheet;
+  }
+
+  /**
+   * Forgets the built sheet of the tab with this id (its content changed: a saved command), so it
+   * is built again: now if it is shown, else when it is next shown. Unknown ids are ignored.
+   */
+  public void rebuildTab(String tabId) {
+    for (int index = 0; index < sources.size(); index++) {
+      Sheet built = sheets[index];
+      if (built == null || !sources.get(index).id().equals(tabId)) {
+        continue;
+      }
+      built.release();
+      sheets[index] = null;
+      if (index == selected && minecraft != null && minecraft.gui.screen() == this) {
+        // Laid out again (the new sheet may pick another scale) with the widgets at it.
+        rebuildWidgets();
+      }
+    }
   }
 
   /**
@@ -387,13 +413,24 @@ public final class CheatSheetScreen extends Screen {
     if (open != null) {
       if (!open.contains(event.x(), event.y())) {
         closeZoom();
+      } else if (event.button() == InputConstants.MOUSE_BUTTON_LEFT
+          && open.mouseClicked(event.x(), event.y())) {
+        // The card grew or shrank (a button showed more): laid out and baked again.
+        dropZoom();
+        openZoom(open.card(), open.anchorX(), open.anchorY());
       }
       return true;
     }
     if (super.mouseClicked(event, doubleClick)) {
       return true;
     }
-    if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || !zoomsCards()) {
+    if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+      return false;
+    }
+    if (clickSheet(event.x(), event.y())) {
+      return true;
+    }
+    if (!zoomsCards()) {
       return false;
     }
     CardSpot spot = new CardSpot();
@@ -401,6 +438,15 @@ public final class CheatSheetScreen extends Screen {
     if (card == null) {
       return false;
     }
+    openZoom(
+        card,
+        (spot.x() + spot.width() / 2) * sheetScale,
+        (spot.y() + spot.height() / 2) * sheetScale);
+    return true;
+  }
+
+  /** Zooms {@code card} centred on ({@code anchorX}, {@code anchorY}) in window pixels. */
+  private void openZoom(ZoomCard card, int anchorX, int anchorY) {
     Window window = minecraft.getWindow();
     int windowWidth = window.getWidth();
     int windowHeight = window.getHeight();
@@ -408,7 +454,10 @@ public final class CheatSheetScreen extends Screen {
     if (size == null) {
       size = sources.get(selected).zoomSize();
     }
-    int scale = size.scale(sheetScale, windowWidth, windowHeight, card.width(), card.height());
+    int scale =
+        card.scrolls()
+            ? size.scrollingScale(sheetScale, windowWidth, card.width())
+            : size.scale(sheetScale, windowWidth, windowHeight, card.width(), card.height());
     zoom =
         CardZoom.open(
             card,
@@ -417,9 +466,26 @@ public final class CheatSheetScreen extends Screen {
             windowHeight,
             sheetScale,
             scale,
-            (spot.x() + spot.width() / 2) * sheetScale,
-            (spot.y() + spot.height() / 2) * sheetScale);
-    return true;
+            anchorX,
+            anchorY,
+            card.scrolls()
+                ? size.scrollingViewport(windowHeight, scale, card.height())
+                : card.height());
+  }
+
+  /**
+   * A left click at the point (sheet pixels) on the shown sheet's sections, inside the view;
+   * whether an element used it (a tab's buttons).
+   */
+  private boolean clickSheet(double guiX, double guiY) {
+    SectionsLayout sectioned = sectionsLayout;
+    int mouseX = (int) Math.floor(guiX);
+    int mouseY = (int) Math.floor(guiY);
+    if (sectioned == null || mouseY < sheetTop || mouseY >= sheetTop + viewHeight()) {
+      return false;
+    }
+    return Section.mouseClicked(
+        font, sheet(selected).sections(), sectioned, mouseX - MARGIN, mouseY - sheetTop + scroll);
   }
 
   /** Whether the shown tab's cards light up and zoom. */
@@ -479,6 +545,7 @@ public final class CheatSheetScreen extends Screen {
   public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
     CardZoom open = zoom;
     if (open != null) {
+      open.scrollBy(-(int) Math.round(scrollY * SCROLL_STEP));
       return true;
     }
     if (layout == null && sectionsLayout == null) {
@@ -618,17 +685,14 @@ public final class CheatSheetScreen extends Screen {
   }
 
   private void extractScrollBar(GuiGraphicsExtractor graphics, int contentHeight, int viewBottom) {
-    int viewHeight = viewBottom - sheetTop;
-    int maxOffset = ScrollRange.maxOffset(contentHeight, viewHeight);
-    if (maxOffset == 0) {
-      return;
-    }
-    int right = canvasWidth - SCROLL_BAR_INSET;
-    int left = right - SCROLL_BAR_WIDTH;
-    graphics.fill(left, sheetTop, right, viewBottom, SheetPalette.SCROLL_BAR_TRACK);
-    int thumbHeight = Math.max(MIN_THUMB_HEIGHT, viewHeight * viewHeight / contentHeight);
-    int thumbTop = sheetTop + (viewHeight - thumbHeight) * scroll / maxOffset;
-    graphics.fill(left, thumbTop, right, thumbTop + thumbHeight, SheetPalette.SCROLL_BAR_THUMB);
+    ScrollBar.extract(
+        graphics,
+        canvasWidth - SCROLL_BAR_INSET - ScrollBar.WIDTH,
+        sheetTop,
+        viewBottom,
+        contentHeight,
+        viewBottom - sheetTop,
+        scroll);
   }
 
   private static Component tabName(SheetSource source) {

@@ -7,15 +7,17 @@ import com.einsteinmods.cheatsheet.client.sheet.SheetPalette;
 import java.util.List;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A crafting table recipe as the game shows it: the 3x3 grid of slots with the items in place, an
- * arrow and the result at 2x. Every item has its own tooltip. Drawing is a few fills and one item
- * per filled slot; it allocates nothing.
+ * A crafting table recipe as the game shows it: the 3x3 grid of slots with the items in place (or a
+ * crafter's disabled slot), an arrow and the result at 2x. Every item has its own tooltip. Drawing
+ * is a few fills and one item per filled slot; it allocates nothing.
  */
 final class CraftingGrid implements SheetElement {
   /** Side of the crafting grid. */
@@ -31,12 +33,28 @@ final class CraftingGrid implements SheetElement {
   private static final int SLOT_EDGE = 0x30FFFFFF;
   private static final String ARROW = "→";
 
-  /** One slot of the grid: its item ({@link ItemStack#EMPTY} for none) and that item's tooltip. */
-  record Slot(ItemStack stack, List<FormattedCharSequence> tooltip) {
+  /** The crafter's disabled slot, as its screen draws it ({@code CrafterScreen}). */
+  private static final Identifier DISABLED_SLOT =
+      Identifier.withDefaultNamespace("container/crafter/disabled_slot");
+
+  /**
+   * One slot of the grid: its item ({@link ItemStack#EMPTY} for none), that item's tooltip, and
+   * whether it is a crafter's disabled slot (drawn as the crafter shows it).
+   */
+  record Slot(ItemStack stack, List<FormattedCharSequence> tooltip, boolean disabled) {
     static final Slot EMPTY = new Slot(ItemStack.EMPTY, List.of());
 
     Slot {
       tooltip = List.copyOf(tooltip);
+    }
+
+    Slot(ItemStack stack, List<FormattedCharSequence> tooltip) {
+      this(stack, tooltip, false);
+    }
+
+    /** A crafter's disabled slot, explained by {@code tooltip}. */
+    static Slot disabled(List<FormattedCharSequence> tooltip) {
+      return new Slot(ItemStack.EMPTY, tooltip, true);
     }
   }
 
@@ -76,6 +94,10 @@ final class CraftingGrid implements SheetElement {
     for (int index = 0; index < slots.length; index++) {
       int slotX = x + slotLeft(index);
       int slotY = y + slotTop(index);
+      if (slots[index].disabled()) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, DISABLED_SLOT, slotX, slotY, SLOT, SLOT);
+        continue;
+      }
       graphics.fill(slotX, slotY, slotX + SLOT, slotY + SLOT, SLOT_FILL);
       graphics.horizontalLine(slotX, slotX + SLOT - 1, slotY + SLOT - 1, SLOT_EDGE);
       ItemStack stack = slots[index].stack();

@@ -101,6 +101,25 @@ public record Section(
     return null;
   }
 
+  /** A left click at ({@code x}, {@code y}) from the sheet's corner; whether an element used it. */
+  public static boolean mouseClicked(
+      Font font, List<Section> sections, SectionsLayout layout, int x, int y) {
+    int titleHeight = titleHeight(font);
+    List<SectionsLayout.PlacedSection> placed = layout.sections();
+    for (int index = 0; index < sections.size(); index++) {
+      SectionsLayout.PlacedSection where = placed.get(index);
+      int localX = x - where.x();
+      int localY = y - where.y() - titleHeight;
+      if (localX >= 0
+          && localX < where.shape().width()
+          && localY >= 0
+          && localY < where.shape().height()) {
+        return sections.get(index).body.mouseClicked(localX, localY, where.shape());
+      }
+    }
+    return false;
+  }
+
   /**
    * Finds the card at ({@code x}, {@code y}) from the sheet's corner and writes it into {@code
    * spot}, bounds from the sheet's corner; whether there is one. Allocates nothing.

@@ -1,6 +1,7 @@
 package com.einsteinmods.cheatsheet.client.sheet;
 
 import com.einsteinmods.cheatsheet.core.ZoomSize;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -16,6 +17,15 @@ public interface SheetSource {
 
   /** Item shown on the tab. */
   ItemStack icon();
+
+  /**
+   * Whether the tab is shown to the player now: asked once when the cheat sheet opens, never while
+   * it is drawn. A hidden tab gets no button; a saved start or last tab that is hidden falls
+   * through like an unknown one.
+   */
+  default boolean availableFor(Minecraft minecraft) {
+    return true;
+  }
 
   /**
    * Builds the sheet. Called at most once per cheat sheet screen, the first time the tab is shown;

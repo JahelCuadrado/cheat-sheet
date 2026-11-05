@@ -19,13 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
-import org.jspecify.annotations.Nullable;
 
 /**
  * The conduit's zoom: a step-by-step card. Four numbered steps, each a picture of the build so far
@@ -70,7 +68,6 @@ final class ConduitTutorial {
 
   /** The card; adds its pictures to {@code atlas} as zoom-only. */
   static ZoomCard build(SheetContext context, PictureAtlas atlas) {
-    Font font = context.font();
     ItemStack frameBlock = stack(context, ConduitMaterials.FRAME_RECIPES.getFirst().resultId());
     List<SheetElement> steps = new ArrayList<>(ConduitFrame.RINGS + 1);
     for (int rings = 0; rings <= ConduitFrame.RINGS; rings++) {
@@ -226,63 +223,5 @@ final class ConduitTutorial {
 
   private static Component text(SheetContext context, String key, Object... args) {
     return context.tabText(BeaconSheet.ID, key, args);
-  }
-
-  /**
-   * Elements side by side in columns of one width, top-aligned (each centred across its column).
-   * Drawing allocates nothing.
-   */
-  private static final class TopRow implements SheetElement {
-    private final SheetElement[] children;
-    private final int columnWidth;
-    private final int gap;
-    private final int height;
-
-    TopRow(List<SheetElement> children, int columnWidth, int gap) {
-      this.children = children.toArray(new SheetElement[0]);
-      this.columnWidth = columnWidth;
-      this.gap = gap;
-      int tallest = 0;
-      for (SheetElement child : this.children) {
-        tallest = Math.max(tallest, child.height());
-      }
-      this.height = tallest;
-    }
-
-    @Override
-    public int minWidth() {
-      return children.length * (columnWidth + gap) - gap;
-    }
-
-    @Override
-    public int height() {
-      return height;
-    }
-
-    @Override
-    public void extract(GuiGraphicsExtractor graphics, int x, int y, int width) {
-      for (int index = 0; index < children.length; index++) {
-        SheetElement child = children[index];
-        child.extract(graphics, x + childX(index, child), y, child.minWidth());
-      }
-    }
-
-    @Override
-    public @Nullable List<FormattedCharSequence> tooltipAt(int localX, int localY, int width) {
-      int index = localX / (columnWidth + gap);
-      if (index >= children.length) {
-        return null;
-      }
-      SheetElement child = children[index];
-      int childX = localX - childX(index, child);
-      if (childX < 0 || childX >= child.minWidth() || localY >= child.height()) {
-        return null;
-      }
-      return child.tooltipAt(childX, localY, child.minWidth());
-    }
-
-    private int childX(int index, SheetElement child) {
-      return index * (columnWidth + gap) + Math.max(0, (columnWidth - child.minWidth()) / 2);
-    }
   }
 }

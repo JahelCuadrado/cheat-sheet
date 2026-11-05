@@ -144,7 +144,7 @@ public final class AnimalVariantGameTest {
   private static String describe(VariantSpawnRules.Condition condition, int priority) {
     String what =
         switch (condition) {
-          case VariantSpawnRules.Always always -> "always";
+          case VariantSpawnRules.Always _ -> "always";
           case VariantSpawnRules.InBiomes biomes -> "biomes " + new TreeSet<>(biomes.biomeIds());
           case VariantSpawnRules.InStructures structures ->
               "structures " + new TreeSet<>(structures.structureIds());
@@ -187,8 +187,11 @@ public final class AnimalVariantGameTest {
     }
     compare("spawning axolotls", AnimalVariants.COMMON_AXOLOTLS, common, mismatches);
     compare("bred-only axolotls", List.of("blue"), rare, mismatches);
-    if (Axolotl.RARE_VARIANT_CHANCE != AnimalVariants.BLUE_AXOLOTL_IN) {
-      mismatches.add("blue axolotl: 1 in " + Axolotl.RARE_VARIANT_CHANCE);
+    // Not final: both sides are compile-time constants, and comparing them directly folds to dead
+    // code.
+    int blueAxolotlIn = Axolotl.RARE_VARIANT_CHANCE;
+    if (blueAxolotlIn != AnimalVariants.BLUE_AXOLOTL_IN) {
+      mismatches.add("blue axolotl: 1 in " + blueAxolotlIn);
     }
     if (Goat.GOAT_SCREAMING_CHANCE * PERCENT != AnimalVariants.SCREAMING_GOAT.percent()) {
       mismatches.add("screaming goat: " + Goat.GOAT_SCREAMING_CHANCE);

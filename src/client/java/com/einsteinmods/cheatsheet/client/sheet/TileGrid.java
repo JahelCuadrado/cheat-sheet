@@ -95,6 +95,29 @@ public final class TileGrid implements SheetBody {
     return tile.tooltipAt(tileX, tileY, tile.minWidth());
   }
 
+  /** The click goes to the tile under it, in the tile's own coordinates. */
+  @Override
+  public boolean mouseClicked(int localX, int localY, BodyShape shape) {
+    int columns = shape.split();
+    int pitchX = geometry.tileWidth() + geometry.gap();
+    int pitchY = geometry.tileHeight() + geometry.gap();
+    if (localX < 0 || localY < 0) {
+      return false;
+    }
+    int column = localX / pitchX;
+    int index = (localY / pitchY) * columns + column;
+    if (column >= columns || index >= tiles.length) {
+      return false;
+    }
+    SheetElement tile = tiles[index];
+    int tileX = localX - column * pitchX - offsetXs[index];
+    int tileY = localY - (localY / pitchY) * pitchY - offsetYs[index];
+    if (tileX < 0 || tileX >= tile.minWidth() || tileY < 0 || tileY >= tile.height()) {
+      return false;
+    }
+    return tile.mouseClicked(tileX, tileY, tile.minWidth());
+  }
+
   /** A tile is a card: the one under the point, at its own size inside its slot. */
   @Override
   public boolean locateCard(int localX, int localY, BodyShape shape, CardSpot spot) {

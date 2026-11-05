@@ -29,6 +29,9 @@ public record Scene(
 
   public static final float MOB_PITCH = 10.0F;
 
+  /** Straight down: the camera sees the blocks' top faces head-on. */
+  public static final float TOP_VIEW_PITCH = 90.0F;
+
   public static Scene of(Diorama diorama) {
     return of(diorama, Cast.NONE);
   }
@@ -39,6 +42,11 @@ public record Scene(
 
   public static Scene of(Cast cast) {
     return new Scene(Optional.empty(), cast, MOB_YAW, MOB_PITCH, 0.0F, Optional.empty());
+  }
+
+  /** Whether the camera looks straight down. */
+  public boolean isTopView() {
+    return pitchDegrees == TOP_VIEW_PITCH;
   }
 
   /** The same scene with {@code blocks} more room under its bounds. */

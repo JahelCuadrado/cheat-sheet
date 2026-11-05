@@ -42,6 +42,21 @@ Fabric mod for Minecraft 26.3. Client only: works on any server.
   alternate rows grow faster, pumpkins and melons, cactus. What each animal breeds with, where to
   find it and how to get it home, and its variants (wolves, cats, frogs, cows, sheep, horses…) with
   the biomes they come from.
+- **Commands** (in creative or with cheats): ready-made commands for building, special items
+  and admin jobs, plus popular combos run in order (full kits, world setup, killing the dragon,
+  clean-up). Send to chat, copy or run with one click; risky ones ask first. Save your own commands
+  for every world and star your favourites.
+- **Redstone:** the numbers you keep checking (pressure plates, comparator with worked examples and
+  the items each container needs per signal, what else a comparator reads, sculk sensor
+  frequencies, delays in ticks) and the crafter, with the signal for every mix of slots and a
+  7-block autocrafter. Mechanics like quasi-connectivity, strong and weak power, slime and honey,
+  and classic circuits (clocks, T flip-flop, pulse limiter and extender, item sorter,
+  self-emptying dropper) as 3D models: the most compact build first, step by step if you want it.
+- **Farms:** 14 classic mob farms with everything you need to build them: light, distance from
+  you, floors, room to spawn, rates and odds, down to the fortress pieces where wither skeletons
+  spawn.
+- **Technical tricks:** getting onto the Nether roof with an ender pearl, with the roof's bedrock
+  by height, and two ways to break bedrock.
 - **Click a card to zoom:** any card opens bigger right where it is, with more to read; hover inside
   for details.
 - **Pictures, not lists:** big item icons, big numbers and charts; hover anything for details.

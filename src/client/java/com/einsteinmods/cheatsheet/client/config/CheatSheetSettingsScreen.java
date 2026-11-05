@@ -94,6 +94,7 @@ public final class CheatSheetSettingsScreen extends Screen {
   private final TickBoxControl pauseButton;
   private final CyclingControl<String> startTab;
   private final CyclingControl<SheetScale> sheetScale;
+  private final TickBoxControl confirmCommandDelete;
 
   /** Key rows in display order, each with the mapping it edits. */
   private final Map<KeyMapping, KeyBindControl> keyControls = new LinkedHashMap<>();
@@ -149,6 +150,11 @@ public final class CheatSheetSettingsScreen extends Screen {
                 current.sheetScale(),
                 defaults.sheetScale(),
                 value -> updateButtons()));
+    confirmCommandDelete =
+        toggle(
+            "confirm_command_delete",
+            current.confirmCommandDelete(),
+            defaults.confirmCommandDelete());
     Component keyDescription = Component.translatable(KEY_PREFIX + "key" + DESCRIPTION_SUFFIX);
     Component waiting = Component.translatable(KEY_PREFIX + "key.waiting");
     for (KeyMapping mapping : keyMappings.configurable()) {
@@ -172,6 +178,7 @@ public final class CheatSheetSettingsScreen extends Screen {
     list.addOption(pauseButton);
     list.addOption(startTab);
     list.addOption(sheetScale);
+    list.addOption(confirmCommandDelete);
     list.addGroup(group("keys"), groupDescription("keys"));
     keyControls.values().forEach(list::addOption);
 
@@ -351,7 +358,8 @@ public final class CheatSheetSettingsScreen extends Screen {
         pauseButton.get(),
         startTab.get(),
         settings.preferences().lastOpenedTab(),
-        sheetScale.get());
+        sheetScale.get(),
+        confirmCommandDelete.get());
   }
 
   private boolean hasPendingChanges() {

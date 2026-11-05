@@ -10,6 +10,9 @@ import com.einsteinmods.cheatsheet.client.sheet.SheetContext;
 import com.einsteinmods.cheatsheet.client.sheet.SheetSource;
 import com.einsteinmods.cheatsheet.client.tabs.BeaconSheet;
 import com.einsteinmods.cheatsheet.client.tabs.CheatSheetTabs;
+import com.einsteinmods.cheatsheet.client.tabs.CommandFormScreen;
+import com.einsteinmods.cheatsheet.client.tabs.CommandsSheet;
+import com.einsteinmods.cheatsheet.client.tabs.DeleteConfirmScreen;
 import com.einsteinmods.cheatsheet.client.tabs.DiscsSheet;
 import com.einsteinmods.cheatsheet.client.tabs.DyesSheet;
 import com.einsteinmods.cheatsheet.client.tabs.EnchantmentsSheet;
@@ -17,9 +20,14 @@ import com.einsteinmods.cheatsheet.client.tabs.FarmingSheet;
 import com.einsteinmods.cheatsheet.client.tabs.FoodSheet;
 import com.einsteinmods.cheatsheet.client.tabs.OresSheet;
 import com.einsteinmods.cheatsheet.client.tabs.PotionsSheet;
+import com.einsteinmods.cheatsheet.client.tabs.RedstoneSheet;
 import com.einsteinmods.cheatsheet.client.tabs.TrimsSheet;
 import com.einsteinmods.cheatsheet.client.tabs.VillagersSheet;
 import com.einsteinmods.cheatsheet.core.SheetScale;
+import com.einsteinmods.cheatsheet.core.commands.BuiltInCommand;
+import com.einsteinmods.cheatsheet.core.commands.BuiltInCommands;
+import com.einsteinmods.cheatsheet.core.commands.CustomCommand;
+import com.einsteinmods.cheatsheet.core.commands.CustomCommands;
 import com.mojang.blaze3d.platform.InputConstants;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
@@ -33,6 +41,8 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Checkbox;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -41,6 +51,8 @@ import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.resources.model.sprite.SpriteId;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.GameType;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -89,7 +101,9 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
           VillagersSheet.ID,
           FoodSheet.ID,
           BeaconSheet.ID,
-          FarmingSheet.ID);
+          FarmingSheet.ID,
+          RedstoneSheet.ID,
+          CommandsSheet.ID);
 
   private static final List<String> VILLAGERS_FOOD_BEACON =
       List.of(VillagersSheet.ID, FoodSheet.ID, BeaconSheet.ID);
@@ -137,6 +151,9 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
   private static final double SHEET_SIZE_ROW_X = 0.3;
 
   private static final double SHEET_SIZE_ROW_Y = 0.2875;
+
+  /** Over the settings' ask before deleting row, one row below (GUI 640x360). */
+  private static final double CONFIRM_DELETE_ROW_Y = SHEET_SIZE_ROW_Y + 22.0 / 360.0;
 
   /**
    * A tab shot at GUI 960x540 and 480x270, scrolled to the bottom and with a tooltip at 480x270:
@@ -202,6 +219,50 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
   /** {@code -PclientGameTestOnly=fit}: only {@link #fitAtPlayerSetup}. */
   private static final String FIT_ONLY = "fit";
 
+  /** {@code -PclientGameTestOnly=commands}: only {@link #commandsShots}. */
+  private static final String COMMANDS_ONLY = "commands";
+
+  /** {@code -PclientGameTestOnly=redstone}: only {@link #redstoneShots}. */
+  private static final String REDSTONE_ONLY = "redstone";
+
+  /**
+   * One row of the redstone tab's cards: a name for its shots, over the middle of each card (GUI
+   * fractions at the player's setup) and the row's height, and whether the tab is scrolled to its
+   * bottom first (the farms are below the window's edge).
+   */
+  private record RedstoneRow(String name, double[] xs, double y, boolean scrolledDown) {}
+
+  /** Six cards, centred: reference cards. */
+  private static final double[] REDSTONE_SIX_CENTRED_XS = {
+    0.2125, 0.3275, 0.4425, 0.5575, 0.6725, 0.7875
+  };
+
+  /** Five cards, centred: mechanics. */
+  private static final double[] REDSTONE_FIVE_XS = {0.27, 0.385, 0.5, 0.615, 0.73};
+
+  /** Seven cards, centred: circuits. */
+  private static final double[] REDSTONE_SEVEN_XS = {0.155, 0.27, 0.385, 0.5, 0.615, 0.73, 0.845};
+
+  /** Three cards centred: the technical tricks. */
+  private static final double[] REDSTONE_THREE_XS = {0.385, 0.5, 0.615};
+
+  /** Eight cards across: the first row of farms. */
+  private static final double[] REDSTONE_EIGHT_XS = {
+    0.098, 0.213, 0.328, 0.443, 0.558, 0.673, 0.788, 0.903
+  };
+
+  /** The last row of farms: six cards, from the left. */
+  private static final double[] REDSTONE_SIX_XS = {0.098, 0.213, 0.328, 0.443, 0.558, 0.673};
+
+  private static final List<RedstoneRow> REDSTONE_ROWS =
+      List.of(
+          new RedstoneRow("redstone-reference", REDSTONE_SIX_CENTRED_XS, 0.2, false),
+          new RedstoneRow("redstone-mechanic", REDSTONE_FIVE_XS, 0.44, false),
+          new RedstoneRow("redstone-circuit", REDSTONE_EIGHT_XS, 0.68, false),
+          new RedstoneRow("redstone-technique", REDSTONE_THREE_XS, 0.38, true),
+          new RedstoneRow("redstone-farm", REDSTONE_EIGHT_XS, 0.63, true),
+          new RedstoneRow("redstone-farm-more", REDSTONE_SIX_XS, 0.79, true));
+
   /** A 1080p screen at GUI scale 3, the sheet on auto: the player's setup. */
   private static final View PLAYER_SETUP = new View("1920x1080-gui3", 1920, 1080, 3);
 
@@ -255,7 +316,8 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
           new ZoomShot(FarmingSheet.ID, "farming-wolf", 0.574, 0.572),
           new ZoomShot(FarmingSheet.ID, "farming-cat", 0.722, 0.572),
           new ZoomShot(FarmingSheet.ID, "farming-llama", 0.426, 0.572),
-          new ZoomShot(FarmingSheet.ID, "farming-sniffer", 0.426, 0.757));
+          new ZoomShot(FarmingSheet.ID, "farming-sniffer", 0.426, 0.757),
+          new ZoomShot(RedstoneSheet.ID, 0.05, 0.1));
 
   /** The zoomed card with the most variant portraits: its frame is measured. */
   private static final String MEASURED_VARIANTS = "farming-cat";
@@ -282,10 +344,20 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
       world.getConnection().waitForChunksRender();
       if (CRISP_ONLY.equals(System.getProperty(ONLY_PROPERTY))) {
         crispShots(context);
+        commandsShots(context, world);
+        return;
+      }
+      if (COMMANDS_ONLY.equals(System.getProperty(ONLY_PROPERTY))) {
+        commandsShots(context, world);
+        return;
+      }
+      if (REDSTONE_ONLY.equals(System.getProperty(ONLY_PROPERTY))) {
+        redstoneShots(context);
         return;
       }
       if (FIT_ONLY.equals(System.getProperty(ONLY_PROPERTY))) {
         fitAtPlayerSetup(context);
+        commandsShots(context, world);
         return;
       }
       context.runOnClient(CheatSheetScreenshotsClientGameTest::measureBuild);
@@ -419,7 +491,468 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
       screenshot(context, "settings-" + scaleTwo.name());
       autoScaleInEveryLanguage(context);
       context.setScreen(() -> null);
+      redstoneShots(context);
+      commandsShots(context, world);
     }
+  }
+
+  /** Lines the wheel scrolls to reach either end of the longest tab. */
+  private static final double SCROLL_TO_END = 100.0;
+
+  /** Scrolls the shown sheet to its top ({@code up}) or its bottom with the mouse wheel. */
+  private static void scrollSheet(ClientGameTestContext context, boolean up) {
+    context.runOnClient(
+        client -> {
+          if (client.gui.screen() instanceof CheatSheetScreen screen) {
+            int width = client.getWindow().getGuiScaledWidth();
+            int height = client.getWindow().getGuiScaledHeight();
+            screen.mouseScrolled(width / 2.0, height / 2.0, 0, up ? SCROLL_TO_END : -SCROLL_TO_END);
+          }
+        });
+    context.waitTicks(SETTLE_TICKS);
+  }
+
+  /**
+   * The redstone tab at the player's setup: the tab at its top and scrolled to its bottom (its fit
+   * reported, its frame measured), then every card zoomed (the reference cards' details, the
+   * guides' steps, the farms' conditions), each also with the mouse over the zoom.
+   */
+  private static void redstoneShots(ClientGameTestContext context) {
+    show(context, PLAYER_SETUP);
+    context.setScreen(
+        () ->
+            new CheatSheetScreen(
+                null,
+                CheatSheetClient.settings(),
+                CheatSheetClient.keyMappings(),
+                CheatSheetTabs.ALL));
+    selectTab(context, RedstoneSheet.ID);
+    context.getInput().setCursorPos(0, 0);
+    context.waitTicks(SETTLE_TICKS);
+    report("fit: %s at %s: %s", RedstoneSheet.ID, PLAYER_SETUP.name(), layoutReport(context));
+    screenshot(context, RedstoneSheet.ID + "-" + PLAYER_SETUP.name());
+    context.runOnClient(client -> measureFrame(client, RedstoneSheet.ID));
+    scrollSheet(context, false);
+    screenshot(context, RedstoneSheet.ID + "-bottom-" + PLAYER_SETUP.name());
+    for (RedstoneRow row : REDSTONE_ROWS) {
+      for (int index = 0; index < row.xs().length; index++) {
+        scrollSheet(context, !row.scrolledDown());
+        ZoomShot shot =
+            new ZoomShot(RedstoneSheet.ID, row.name() + "-" + index, row.xs()[index], row.y());
+        double[] point = context.computeOnClient(client -> findCard(client, shot));
+        context.getInput().setCursorPos(0, 0);
+        context.waitTicks(SETTLE_TICKS);
+        screenshot(context, "zoom-" + shot.name() + "-" + PLAYER_SETUP.name());
+        context.getInput().setCursorPos(point[0] * point[2], point[1] * point[2]);
+        context.waitTicks(SETTLE_TICKS);
+        screenshot(context, "zoom-tooltip-" + shot.name() + "-" + PLAYER_SETUP.name());
+        context.getInput().setCursorPos(0, 0);
+        if (shot.name().equals(CRAFTER_ZOOM)) {
+          crafterZoomShots(context);
+        }
+        context.runOnClient(client -> measureFrame(client, "zoomed " + shot.name()));
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitTicks(SETTLE_TICKS);
+        expectZoom(context, false, "Escape must close the zoom and keep the cheat sheet open");
+      }
+    }
+    context.setScreen(() -> null);
+  }
+
+  /** The crafter's zoom, the one that scrolls: the last of the reference cards. */
+  private static final String CRAFTER_ZOOM = "redstone-reference-5";
+
+  /** Wheel notches between shots of the crafter's zoom, and shots down to its end. */
+  private static final int CRAFTER_ZOOM_NOTCHES = 9;
+
+  private static final int CRAFTER_ZOOM_SHOTS = 5;
+
+  /** Over the last picture of the crafter's zoom, scrolled to its end (window fractions). */
+  private static final double CRAFTER_LAST_PICTURE_X = 0.28;
+
+  private static final double CRAFTER_LAST_PICTURE_Y = 0.75;
+
+  /**
+   * The crafter's zoom page by page, scrolled with the wheel to its bottom, the last picture's
+   * tooltip there, and the wheel back to the top, where it opened.
+   */
+  private static void crafterZoomShots(ClientGameTestContext context) {
+    for (int shot = 1; shot <= CRAFTER_ZOOM_SHOTS; shot++) {
+      scrollBy(context, -CRAFTER_ZOOM_NOTCHES);
+      screenshot(context, "zoom-crafter-page-" + shot + "-" + PLAYER_SETUP.name());
+    }
+    scrollSheet(context, false);
+    screenshot(context, "zoom-crafter-bottom-" + PLAYER_SETUP.name());
+    context
+        .getInput()
+        .setCursorPos(
+            PLAYER_SETUP.windowWidth() * CRAFTER_LAST_PICTURE_X,
+            PLAYER_SETUP.windowHeight() * CRAFTER_LAST_PICTURE_Y);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "zoom-crafter-bottom-tooltip-" + PLAYER_SETUP.name());
+    context.getInput().setCursorPos(0, 0);
+    scrollSheet(context, true);
+    screenshot(context, "zoom-crafter-top-again-" + PLAYER_SETUP.name());
+  }
+
+  private static void scrollBy(ClientGameTestContext context, int notches) {
+    context.runOnClient(
+        client -> {
+          if (client.gui.screen() instanceof CheatSheetScreen screen) {
+            screen.mouseScrolled(0, 0, 0, notches);
+          }
+        });
+    context.waitTicks(SETTLE_TICKS);
+  }
+
+  /** Over the "+" of the saved commands card, scanned for (GUI fractions at the player's setup). */
+  private static final double ADD_SCAN_LEFT = 0.15;
+
+  private static final double ADD_SCAN_RIGHT = 0.3;
+  private static final double ADD_SCAN_TOP = 0.08;
+  private static final double ADD_SCAN_BOTTOM = 0.16;
+  private static final String CUSTOM_NAME = "Home";
+
+  /** Over the first built-in command's name (window fractions at the player's setup). */
+  private static final double FIRST_COMMAND_X = 0.05;
+
+  private static final double FIRST_COMMAND_Y = 0.492;
+
+  /** Over the first combo's name, the full kit (window fractions at the player's setup). */
+  private static final double FIRST_COMBO_Y = 0.262;
+
+  /** Around the first combo's star, scanned for right to left (GUI fractions). */
+  private static final double STAR_SCAN_LEFT = 0.2;
+
+  private static final double STAR_SCAN_RIGHT = 0.26;
+  private static final double STAR_SCAN_TOP = 0.2;
+  private static final double STAR_SCAN_BOTTOM = 0.32;
+  private static final String FIRST_COMBO = "full_kit";
+  private static final String CUSTOM_COMMAND = "/tp @s 0 64 0";
+  private static final String CUSTOM_SECOND_LINE = "time set day";
+
+  /** Side of a Commands tab button: the "+" ends this far below its top edge. */
+  private static final int COMMAND_BUTTON_SIZE = 9;
+
+  private static final String YES_KEY = "gui.yes";
+  private static final String NO_KEY = "gui.no";
+  private static final String SAVE_KEY = "config.cheatsheet.save";
+
+  /** Ticks for a toast to slide in. */
+  private static final int TOAST_TICKS = 15;
+
+  /**
+   * The Commands tab at the player's setup: hidden in the test world (survival, no cheats), shown
+   * once the player is in creative mode; the tab, a command's and a combo's tooltip, the first
+   * combo's star (saved whole in My commands with a tick; a second click only shows a toast), the
+   * add form (two lines typed, saved with Tab then Enter: both lines are in the file and on the
+   * tab), Escape on the form back to the cheat sheet. Leaves the player in survival and no command
+   * saved.
+   */
+  private static void commandsShots(ClientGameTestContext context, TestSingleplayerContext world) {
+    show(context, PLAYER_SETUP);
+    context.setScreen(() -> null);
+    if (context.computeOnClient(CheatSheetScreenshotsClientGameTest::commandsShown)) {
+      throw new AssertionError("the Commands tab must be hidden in survival without cheats");
+    }
+    setGameMode(context, world, GameType.CREATIVE);
+    if (!context.computeOnClient(CheatSheetScreenshotsClientGameTest::commandsShown)) {
+      throw new AssertionError("the Commands tab must be shown in creative mode");
+    }
+    context.runOnClient(client -> CheatSheetClient.openCheatSheet(client, null));
+    context.waitForScreen(CheatSheetScreen.class);
+    selectTab(context, CommandsSheet.ID);
+    context.getInput().setCursorPos(0, 0);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-" + PLAYER_SETUP.name());
+    report("fit: commands at %s: %s", PLAYER_SETUP.name(), layoutReport(context));
+    context.runOnClient(client -> measureFrame(client, CommandsSheet.ID));
+    context
+        .getInput()
+        .setCursorPos(
+            PLAYER_SETUP.windowWidth() * FIRST_COMMAND_X,
+            PLAYER_SETUP.windowHeight() * FIRST_COMMAND_Y);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-tooltip-" + PLAYER_SETUP.name());
+    context
+        .getInput()
+        .setCursorPos(
+            PLAYER_SETUP.windowWidth() * FIRST_COMMAND_X,
+            PLAYER_SETUP.windowHeight() * FIRST_COMBO_Y);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-combo-tooltip-" + PLAYER_SETUP.name());
+
+    // The first save adds a row to My commands and may move the star: saved again on the new
+    // layout (the list emptied without a rebuild), the star stays where the second scan found it.
+    context.computeOnClient(CheatSheetScreenshotsClientGameTest::clickFirstStar);
+    context.runOnClient(client -> CheatSheetClient.customCommands().update(CustomCommands.EMPTY));
+    double[] star = context.computeOnClient(CheatSheetScreenshotsClientGameTest::clickFirstStar);
+    List<String> kit = firstComboLines();
+    context.getInput().setCursorPos(star[0] * star[2], star[1] * star[2]);
+    context.waitTicks(SETTLE_TICKS);
+    List<CustomCommand> favourited =
+        context.computeOnClient(client -> CheatSheetClient.customCommands().commands().entries());
+    if (favourited.size() != 1 || !favourited.getFirst().lines().equals(kit)) {
+      throw new AssertionError("the star must save the whole combo, found " + favourited);
+    }
+    screenshot(context, "commands-favourite-" + PLAYER_SETUP.name());
+    context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+    context.waitTicks(TOAST_TICKS);
+    if (context.computeOnClient(
+            client -> CheatSheetClient.customCommands().commands().entries().size())
+        != 1) {
+      throw new AssertionError("a second star click must not save the combo again");
+    }
+    screenshot(context, "commands-favourite-again-" + PLAYER_SETUP.name());
+    context.runOnClient(client -> CheatSheetClient.customCommands().update(CustomCommands.EMPTY));
+
+    double[] add = context.computeOnClient(CheatSheetScreenshotsClientGameTest::findAddButton);
+    context.waitForScreen(CheatSheetScreen.class);
+    context.getInput().setCursorPos(add[0] * add[2], add[1] * add[2]);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-add-tooltip-" + PLAYER_SETUP.name());
+    context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+    context.waitForScreen(CommandFormScreen.class);
+    context.getInput().typeChars(CUSTOM_NAME);
+    context.getInput().pressKey(InputConstants.KEY_TAB);
+    context.getInput().typeChars(CUSTOM_COMMAND);
+    context.getInput().pressKey(InputConstants.KEY_RETURN);
+    context.getInput().typeChars(CUSTOM_SECOND_LINE);
+    context.getInput().setCursorPos(0, 0);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-form-" + PLAYER_SETUP.name());
+    context.getInput().pressKey(InputConstants.KEY_TAB);
+    context.getInput().pressKey(InputConstants.KEY_RETURN);
+    context.waitForScreen(CheatSheetScreen.class);
+    CustomCommands saved =
+        context.computeOnClient(client -> CheatSheetClient.customCommands().commands());
+    CustomCommand expected =
+        new CustomCommand(CUSTOM_NAME, List.of(CUSTOM_COMMAND.substring(1), CUSTOM_SECOND_LINE));
+    if (!saved.entries().equals(List.of(expected))) {
+      throw new AssertionError("Enter in the commands box adds a line, found " + saved);
+    }
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-saved-" + PLAYER_SETUP.name());
+    context.getInput().setCursorPos(add[0] * add[2], add[1] * add[2]);
+    context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+    context.waitForScreen(CommandFormScreen.class);
+    context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+    context.waitForScreen(CheatSheetScreen.class);
+    deleteShots(context, add, expected);
+    context.runOnClient(client -> CheatSheetClient.customCommands().update(CustomCommands.EMPTY));
+    context.setScreen(() -> null);
+    setGameMode(context, world, GameType.SURVIVAL);
+  }
+
+  /**
+   * Deleting {@code saved}, the only saved command, with the cheat sheet open: the screen with its
+   * tick box; ticked and No keeps the command and asks again; ticked, a resize (the tick stays),
+   * Yes deletes it and the next delete is one click with no screen; the settings row brings the
+   * question back. Leaves no command saved, the question on and the settings screen closed.
+   */
+  private static void deleteShots(
+      ClientGameTestContext context, double[] add, CustomCommand saved) {
+    double[] delete = context.computeOnClient(client -> findDeleteButton(client, add[1], add[2]));
+    context.waitForScreen(DeleteConfirmScreen.class);
+    context.getInput().setCursorPos(0, 0);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-delete-confirm-" + PLAYER_SETUP.name());
+    clickDontAskAgain(context);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "commands-delete-ticked-" + PLAYER_SETUP.name());
+    context.clickScreenButton(NO_KEY);
+    context.waitForScreen(CheatSheetScreen.class);
+    expectDeleteState(context, List.of(saved), true, "ticked and No");
+
+    context.waitTicks(SETTLE_TICKS);
+    context.getInput().setCursorPos(delete[0] * delete[2], delete[1] * delete[2]);
+    context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+    context.waitForScreen(DeleteConfirmScreen.class);
+    clickDontAskAgain(context);
+    show(context, VIEWS.getFirst());
+    show(context, PLAYER_SETUP);
+    context.clickScreenButton(YES_KEY);
+    context.waitForScreen(CheatSheetScreen.class);
+    expectDeleteState(context, List.of(), false, "ticked, resized and Yes");
+
+    context.runOnClient(
+        client -> {
+          CheatSheetClient.customCommands().update(CustomCommands.EMPTY.with(saved));
+          if (client.gui.screen() instanceof CheatSheetScreen screen) {
+            screen.rebuildTab(CommandsSheet.ID);
+          }
+        });
+    context.waitTicks(SETTLE_TICKS);
+    context.getInput().setCursorPos(delete[0] * delete[2], delete[1] * delete[2]);
+    context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+    context.waitTicks(SETTLE_TICKS);
+    if (!context.computeOnClient(client -> client.gui.screen() instanceof CheatSheetScreen)) {
+      throw new AssertionError("with the question off, delete must open no screen");
+    }
+    expectDeleteState(context, List.of(), false, "one click");
+    screenshot(context, "commands-deleted-at-once-" + PLAYER_SETUP.name());
+
+    View settingsView = VIEWS.get(1);
+    show(context, settingsView);
+    context.setScreen(
+        () ->
+            new CheatSheetSettingsScreen(
+                null, CheatSheetClient.settings(), CheatSheetClient.keyMappings()));
+    context.waitTicks(SETTLE_TICKS);
+    context
+        .getInput()
+        .setCursorPos(
+            settingsView.windowWidth() * SHEET_SIZE_ROW_X,
+            settingsView.windowHeight() * CONFIRM_DELETE_ROW_Y);
+    context.waitTicks(SETTLE_TICKS);
+    screenshot(context, "settings-confirm-delete-" + settingsView.name());
+    context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+    context.clickScreenButton(SAVE_KEY);
+    expectDeleteState(context, List.of(), true, "settings row");
+    context.getInput().setCursorPos(0, 0);
+    show(context, PLAYER_SETUP);
+  }
+
+  /** Clicks the question's tick box with the mouse: Fabric's button click only presses buttons. */
+  private static void clickDontAskAgain(ClientGameTestContext context) {
+    double[] box =
+        context.computeOnClient(
+            client -> {
+              int guiScale = client.getWindow().getGuiScale();
+              for (GuiEventListener child : client.gui.screen().children()) {
+                if (child instanceof Checkbox checkbox) {
+                  return new double[] {
+                    (checkbox.getX() + 1.0) * guiScale, (checkbox.getY() + 1.0) * guiScale
+                  };
+                }
+              }
+              throw new AssertionError("no tick box on the question");
+            });
+    context.getInput().setCursorPos(box[0], box[1]);
+    context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+  }
+
+  private static void expectDeleteState(
+      ClientGameTestContext context, List<CustomCommand> saved, boolean asks, String step) {
+    List<CustomCommand> found =
+        context.computeOnClient(client -> CheatSheetClient.customCommands().commands().entries());
+    boolean foundAsks =
+        context.computeOnClient(
+            client -> CheatSheetClient.settings().preferences().confirmCommandDelete());
+    if (!found.equals(saved) || foundAsks != asks) {
+      throw new AssertionError(step + ": asks " + foundAsks + ", saved " + found);
+    }
+  }
+
+  /** Whether the cheat sheet would show the Commands tab to the player now. */
+  private static boolean commandsShown(Minecraft client) {
+    for (SheetSource source : CheatSheetTabs.availableFor(client)) {
+      if (source.id().equals(CommandsSheet.ID)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static void setGameMode(
+      ClientGameTestContext context, TestSingleplayerContext world, GameType mode) {
+    world
+        .getServer()
+        .runOnServer(
+            server -> {
+              for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                player.setGameMode(mode);
+              }
+            });
+    context.waitFor(client -> client.player != null && client.player.gameMode() == mode);
+  }
+
+  private static List<String> firstComboLines() {
+    for (BuiltInCommand command : BuiltInCommands.ALL) {
+      if (command.key().equals(FIRST_COMBO)) {
+        return command.lines();
+      }
+    }
+    throw new AssertionError("no built-in " + FIRST_COMBO);
+  }
+
+  /**
+   * The first combo's star: clicks (no real input) right to left, then down, around it until it is
+   * saved (a star of a later row reached first is unsaved again); the star is the rightmost button
+   * of its row, so no other button of the row is reached first. Leaves the combo saved; point in
+   * GUI pixels and the GUI scale.
+   */
+  private static double[] clickFirstStar(Minecraft client) {
+    if (!(client.gui.screen() instanceof CheatSheetScreen screen)) {
+      throw new AssertionError("the cheat sheet must be open");
+    }
+    int width = client.getWindow().getGuiScaledWidth();
+    int height = client.getWindow().getGuiScaledHeight();
+    int guiScale = client.getWindow().getGuiScale();
+    for (int y = (int) (height * STAR_SCAN_TOP); y < height * STAR_SCAN_BOTTOM; y++) {
+      for (int x = (int) (width * STAR_SCAN_RIGHT); x > width * STAR_SCAN_LEFT; x--) {
+        screen.mouseClicked(leftClick(x + 0.5, y + 0.5), false);
+        List<CustomCommand> saved = CheatSheetClient.customCommands().commands().entries();
+        if (!saved.isEmpty()) {
+          if (saved.getFirst().lines().equals(firstComboLines())) {
+            return new double[] {x + 0.5, y + 0.5, guiScale};
+          }
+          CheatSheetClient.customCommands().update(CustomCommands.EMPTY);
+        }
+        if (client.gui.screen() != screen) {
+          throw new AssertionError("the star scan reached another button at " + x + ", " + y);
+        }
+      }
+    }
+    throw new AssertionError("no star on the first combo");
+  }
+
+  /**
+   * The "+" of the saved commands card: clicks (no real input) left to right then down until the
+   * form opens, then closes it again. Point in GUI pixels and the GUI scale.
+   */
+  private static double[] findAddButton(Minecraft client) {
+    if (!(client.gui.screen() instanceof CheatSheetScreen screen)) {
+      throw new AssertionError("the cheat sheet must be open");
+    }
+    int width = client.getWindow().getGuiScaledWidth();
+    int height = client.getWindow().getGuiScaledHeight();
+    int guiScale = client.getWindow().getGuiScale();
+    for (int y = (int) (height * ADD_SCAN_TOP); y < height * ADD_SCAN_BOTTOM; y++) {
+      for (int x = (int) (width * ADD_SCAN_LEFT); x < width * ADD_SCAN_RIGHT; x++) {
+        screen.mouseClicked(leftClick(x + 0.5, y + 0.5), false);
+        if (client.gui.screen() instanceof CommandFormScreen form) {
+          form.onClose();
+          return new double[] {x + 0.5, y + 0.5, guiScale};
+        }
+      }
+    }
+    throw new AssertionError("no + button on the Commands tab");
+  }
+
+  /**
+   * The delete button of the first saved row, the rightmost of its row: clicks (no real input)
+   * right to left, then down, starting below the "+" whose top is at GUI height {@code addY}, until
+   * the question opens, and leaves it open. Point in GUI pixels and the GUI scale.
+   */
+  private static double[] findDeleteButton(Minecraft client, double addY, double guiScale) {
+    if (!(client.gui.screen() instanceof CheatSheetScreen screen)) {
+      throw new AssertionError("the cheat sheet must be open");
+    }
+    int width = client.getWindow().getGuiScaledWidth();
+    int height = client.getWindow().getGuiScaledHeight();
+    for (int y = (int) addY + COMMAND_BUTTON_SIZE; y < height * STAR_SCAN_BOTTOM; y++) {
+      for (int x = (int) (width * ADD_SCAN_RIGHT); x > width * ADD_SCAN_LEFT; x--) {
+        screen.mouseClicked(leftClick(x + 0.5, y + 0.5), false);
+        if (client.gui.screen() != screen) {
+          if (client.gui.screen() instanceof DeleteConfirmScreen) {
+            return new double[] {x + 0.5, y + 0.5, guiScale};
+          }
+          throw new AssertionError("the delete scan reached another button at " + x + ", " + y);
+        }
+      }
+    }
+    throw new AssertionError("no delete button on the saved command");
   }
 
   /**
@@ -740,7 +1273,11 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
             ClientPreferences current = settings.preferences();
             settings.update(
                 new ClientPreferences(
-                    current.pauseButton(), current.startTab(), current.lastOpenedTab(), scale));
+                    current.pauseButton(),
+                    current.startTab(),
+                    current.lastOpenedTab(),
+                    scale,
+                    current.confirmCommandDelete()));
           });
       context.setScreen(
           () ->
@@ -820,7 +1357,8 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
                   current.pauseButton(),
                   current.startTab(),
                   current.lastOpenedTab(),
-                  SheetScale.AUTO));
+                  SheetScale.AUTO,
+                  current.confirmCommandDelete()));
         });
   }
 
@@ -1076,7 +1614,13 @@ public final class CheatSheetScreenshotsClientGameTest implements FabricClientGa
         report(
             "fit: %s in %s at %s: %s", tab, language, PLAYER_SETUP.name(), layoutReport(context));
       }
-      for (String tab : List.of(OresSheet.ID, BeaconSheet.ID, EnchantmentsSheet.ID)) {
+      for (String tab :
+          List.of(
+              OresSheet.ID,
+              BeaconSheet.ID,
+              EnchantmentsSheet.ID,
+              RedstoneSheet.ID,
+              CommandsSheet.ID)) {
         selectTab(context, tab);
         screenshot(context, "fit-" + tab + "-" + language + "-" + PLAYER_SETUP.name());
       }

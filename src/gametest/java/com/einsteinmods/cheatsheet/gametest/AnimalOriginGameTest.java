@@ -106,7 +106,7 @@ public final class AnimalOriginGameTest {
             expected.addAll(CAVE_BIOMES_WITH_SURFACE_TREES);
             compare("bee nests", List.copyOf(expected), beeNestBiomes(biomes), mismatches);
           }
-          case AnimalOrigin.Special special -> {
+          case AnimalOrigin.Special _ -> {
             // Told only: the table cites the vanilla code.
           }
         }

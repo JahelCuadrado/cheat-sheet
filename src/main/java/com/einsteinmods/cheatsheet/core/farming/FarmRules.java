@@ -80,8 +80,8 @@ public final class FarmRules {
 
   /**
    * Whether a stem at ({@code x}, {@code y}) has a side where its fruit can grow ({@code
-   * StemBlock#randomTick}: a random side that is air above dirt, grass or farmland): bare ground or
-   * its fruit already there.
+   * StemBlock#randomTick}: a random side that is air above dirt, grass, mud, moss or farmland):
+   * bare ground or its fruit already there.
    */
   public static boolean stemHasFruitSpot(FarmPlan plan, int x, int y) {
     PlanCell fruit = plan.cell(x, y).fruit();

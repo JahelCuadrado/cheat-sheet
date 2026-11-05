@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.1.0 — 2026-11-05
+
+Two new tabs, Commands and Redstone, and everything explained in plain sentences.
+
+- **Commands** (in creative or with cheats): ready-made commands for building, special items
+  and admin jobs, plus popular combos run in order (full kits, world setup, killing the dragon,
+  clean-up). Send to chat, copy or run with one click; risky ones ask first. Save your own commands
+  for every world and star your favourites.
+- **Redstone:** the numbers you keep checking (pressure plates, comparator with worked examples and
+  the items each container needs per signal, what else a comparator reads, sculk sensor
+  frequencies, delays in ticks) and the crafter, with the signal for every mix of slots and a
+  7-block autocrafter. Mechanics like quasi-connectivity, strong and weak power, slime and honey,
+  and classic circuits (clocks, T flip-flop, pulse limiter and extender, item sorter,
+  self-emptying dropper) as 3D models: the most compact build first, step by step if you want it.
+- **Farms:** 14 classic mob farms with everything you need to build them: light, distance from
+  you, floors, room to spawn, rates and odds, down to the fortress pieces where wither skeletons
+  spawn.
+- **Technical tricks:** getting onto the Nether roof with an ender pearl, with the roof's bedrock
+  by height, and two ways to break bedrock.
+- **Quick look first:** circuits and guides open on the build you want, with a button to show
+  the full explanation.
+- **Clearer explanations:** every explanation now reads as natural sentences, in all 17 languages.
+- **Ask once:** deleting your own commands can skip the question ("Don't ask me again"); turn it
+  back on in the settings.
+
 ## 1.0.0 — 2026-10-24
 
 First release for Minecraft 26.3 (Fabric). Everything you keep looking up on the wiki, one click

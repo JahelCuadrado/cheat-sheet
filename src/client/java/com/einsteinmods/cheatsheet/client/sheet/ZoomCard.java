@@ -30,4 +30,20 @@ public interface ZoomCard {
   default @Nullable ZoomSize size() {
     return null;
   }
+
+  /**
+   * Whether the card scrolls inside the zoom when taller than the room: scaled to its width, not to
+   * its height. Off by default.
+   */
+  default boolean scrolls() {
+    return false;
+  }
+
+  /**
+   * A left click at ({@code localX}, {@code localY}) from the card's corner; whether the card
+   * changed (a button that shows more), so the zoom is laid out again. Nothing by default.
+   */
+  default boolean mouseClicked(int localX, int localY) {
+    return false;
+  }
 }

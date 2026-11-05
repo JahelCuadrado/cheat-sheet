@@ -2,6 +2,8 @@ package com.einsteinmods.cheatsheet.client;
 
 import com.einsteinmods.cheatsheet.client.config.ClientSettings;
 import com.einsteinmods.cheatsheet.client.config.ClientSettingsFile;
+import com.einsteinmods.cheatsheet.client.config.CustomCommandStore;
+import com.einsteinmods.cheatsheet.client.config.CustomCommandsFile;
 import com.einsteinmods.cheatsheet.client.picture.PictureBakeRenderer;
 import com.einsteinmods.cheatsheet.client.picture.ScaledItemIcons;
 import com.einsteinmods.cheatsheet.client.tabs.CheatSheetTabs;
@@ -27,6 +29,7 @@ public final class CheatSheetClient implements ClientModInitializer {
   private static @Nullable ClientSettings settings;
   private static @Nullable CheatSheetKeyMappings keyMappings;
   private static @Nullable ScaledItemIcons scaledItemIcons;
+  private static @Nullable CustomCommandStore customCommands;
 
   public static Identifier id(String path) {
     return Identifier.fromNamespaceAndPath(MOD_ID, path);
@@ -62,10 +65,29 @@ public final class CheatSheetClient implements ClientModInitializer {
     return icons;
   }
 
-  /** Opens the cheat sheet; closing it returns to {@code parent}. */
+  /**
+   * The player's saved commands, created the first time the Commands tab is built (the file is read
+   * then, not at startup).
+   */
+  public static CustomCommandStore customCommands() {
+    CustomCommandStore store = customCommands;
+    if (store == null) {
+      store =
+          new CustomCommandStore(
+              FabricLoader.getInstance().getConfigDir().resolve(CustomCommandsFile.FILE_NAME));
+      customCommands = store;
+    }
+    return store;
+  }
+
+  /**
+   * Opens the cheat sheet with the tabs available to the player now; closing it returns to {@code
+   * parent}.
+   */
   public static void openCheatSheet(Minecraft minecraft, @Nullable Screen parent) {
     minecraft.gui.setScreen(
-        new CheatSheetScreen(parent, settings(), keyMappings(), CheatSheetTabs.ALL));
+        new CheatSheetScreen(
+            parent, settings(), keyMappings(), CheatSheetTabs.availableFor(minecraft)));
   }
 
   @Override

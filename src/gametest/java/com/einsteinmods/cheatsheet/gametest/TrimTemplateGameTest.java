@@ -20,8 +20,8 @@ import net.minecraft.server.MinecraftServer;
  * The cheat sheet's template table ({@link TrimTable}) against the game: each template drops from
  * exactly the loot tables of its source, only the tables the sheet names roll a source's table (a
  * trial chamber vault and its reward chests share one), every trim pattern and every template found
- * in loot is in the table, and each copy recipe is 7 diamonds + the template + the listed block,
- * making two.
+ * in loot is in the table, and each copy recipe is 7 diamonds + the template + exactly the listed
+ * blocks, making two.
  */
 public final class TrimTemplateGameTest {
   private static final String NAMESPACE = "minecraft:";
@@ -102,7 +102,10 @@ public final class TrimTemplateGameTest {
   private static void checkCopyRecipes(List<JsonObject> recipes, List<String> mismatches) {
     for (TrimTemplate template : TrimTable.TEMPLATES) {
       String itemId = NAMESPACE + template.itemId();
-      String block = NAMESPACE + template.copyBlockId();
+      Set<String> blocks = new TreeSet<>();
+      for (String block : template.copyBlockIds()) {
+        blocks.add(NAMESPACE + block);
+      }
       List<JsonObject> copies = new ArrayList<>();
       for (JsonObject recipe : recipes) {
         if (itemId.equals(RecipeJson.resultId(recipe))) {
@@ -138,7 +141,7 @@ public final class TrimTemplateGameTest {
           }
         }
       }
-      if (!usesTemplate || diamonds != TrimTable.COPY_DIAMONDS || !others.contains(block)) {
+      if (!usesTemplate || diamonds != TrimTable.COPY_DIAMONDS || !others.equals(blocks)) {
         mismatches.add(
             itemId
                 + ": copy recipe is "
@@ -147,7 +150,7 @@ public final class TrimTemplateGameTest {
                 + others
                 + (usesTemplate ? " + template" : " without template")
                 + ", table says "
-                + block);
+                + blocks);
       }
     }
   }

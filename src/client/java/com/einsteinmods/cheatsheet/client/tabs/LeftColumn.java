@@ -64,4 +64,17 @@ final class LeftColumn implements SheetElement {
     }
     return null;
   }
+
+  @Override
+  public boolean mouseClicked(int localX, int localY, int width) {
+    int childY = 0;
+    for (int index = 0; index < children.size(); index++) {
+      SheetElement child = children.get(index);
+      if (localY >= childY && localY < childY + child.height() && localX < child.minWidth()) {
+        return child.mouseClicked(localX, localY - childY, child.minWidth());
+      }
+      childY += child.height() + gap;
+    }
+    return false;
+  }
 }

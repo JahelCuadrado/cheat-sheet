@@ -53,8 +53,9 @@ import org.jspecify.annotations.Nullable;
  * Renders scenes (or item icons) into a new atlas texture, one cell per picture, the way vanilla
  * renders items into its GUI item atlas: an orthographic projection over the whole texture, each
  * cell clipped by a scissor and drawn by the feature dispatcher. Blocks are drawn with item
- * lighting (they look like block icons) and mobs with the lighting of mobs in screens. Only called
- * during the GUI render.
+ * lighting (they look like block icons; flat item lighting from straight above, where the 3D one
+ * leaves a face seen head-on at half brightness) and mobs with the lighting of mobs in screens.
+ * Only called during the GUI render.
  */
 final class PictureBaker implements AutoCloseable {
   private static final String LABEL = "Cheat sheet pictures";
@@ -126,7 +127,10 @@ final class PictureBaker implements AutoCloseable {
       if (frame(scene, mobs, left, top, cellWidth, cellHeight)) {
         if (scene.diorama().isPresent()) {
           submitBlocks(blocks, scene.diorama().get());
-          minecraft.gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_3D);
+          minecraft
+              .gameRenderer
+              .lighting()
+              .setupFor(scene.isTopView() ? Lighting.Entry.ITEMS_FLAT : Lighting.Entry.ITEMS_3D);
           flush(dispatcher, colorView, depthView);
         }
         if (!mobs.isEmpty()) {

@@ -26,7 +26,8 @@ public final class ClientSettings {
             loaded.pauseButton(),
             StartTab.sanitize(loaded.startTab(), this.tabIds),
             loaded.lastOpenedTab(),
-            loaded.sheetScale());
+            loaded.sheetScale(),
+            loaded.confirmCommandDelete());
   }
 
   public ClientPreferences preferences() {
@@ -46,7 +47,15 @@ public final class ClientSettings {
 
   /** Index of the tab the cheat sheet opens on. */
   public int startTabIndex() {
-    return StartTab.initialIndex(preferences.startTab(), preferences.lastOpenedTab(), tabIds);
+    return startTabIndex(tabIds);
+  }
+
+  /**
+   * Index among {@code shownTabIds} (the tabs shown now, in order) of the tab the cheat sheet opens
+   * on: a hidden start or last tab falls through like an unknown one.
+   */
+  public int startTabIndex(List<String> shownTabIds) {
+    return StartTab.initialIndex(preferences.startTab(), preferences.lastOpenedTab(), shownTabIds);
   }
 
   /** Remembers the tab open when the cheat sheet closes; writes the file only if it changed. */

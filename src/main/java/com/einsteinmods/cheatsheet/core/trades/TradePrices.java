@@ -18,6 +18,9 @@ public final class TradePrices {
    */
   public static final int MAX_BOOK_LEVEL = 5;
 
+  /** Mending's only level (data {@code enchantment/mending}); the GameTest checks it. */
+  public static final int MENDING_LEVEL = 1;
+
   /** Treasure enchantments ({@code #minecraft:double_trade_price}) cost twice as much. */
   public static final int TREASURE_FACTOR = 2;
 
@@ -44,20 +47,26 @@ public final class TradePrices {
 
   /** Extra cost of an enchanted book, from level 1 to {@link #MAX_BOOK_LEVEL}, before clamping. */
   public static CountRange bookCost() {
-    int cheapest = BOOK_BASE + BOOK_PER_LEVEL;
-    int dearest =
-        BOOK_BASE
-            + BOOK_SPREAD_BASE
-            + MAX_BOOK_LEVEL * BOOK_SPREAD_PER_LEVEL
-            - 1
-            + BOOK_PER_LEVEL * MAX_BOOK_LEVEL;
-    return new CountRange(cheapest, dearest);
+    return new CountRange(cheapestBookCost(1), dearestBookCost(MAX_BOOK_LEVEL));
   }
 
-  /** Price of a treasure book (Mending and the like): twice the book cost, clamped. */
-  public static CountRange treasureBookPrice() {
-    CountRange book = bookCost();
-    return clamped(book.min() * TREASURE_FACTOR, book.max() * TREASURE_FACTOR);
+  /** Price of a Mending book: its one level's book cost, doubled as a treasure, clamped. */
+  public static CountRange mendingBookPrice() {
+    return clamped(
+        cheapestBookCost(MENDING_LEVEL) * TREASURE_FACTOR,
+        dearestBookCost(MENDING_LEVEL) * TREASURE_FACTOR);
+  }
+
+  private static int cheapestBookCost(int level) {
+    return BOOK_BASE + BOOK_PER_LEVEL * level;
+  }
+
+  private static int dearestBookCost(int level) {
+    return BOOK_BASE
+        + BOOK_SPREAD_BASE
+        + level * BOOK_SPREAD_PER_LEVEL
+        - 1
+        + BOOK_PER_LEVEL * level;
   }
 
   private static CountRange clamped(int min, int max) {

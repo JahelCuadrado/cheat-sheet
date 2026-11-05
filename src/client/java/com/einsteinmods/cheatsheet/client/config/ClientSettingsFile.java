@@ -12,15 +12,17 @@ import org.jspecify.annotations.Nullable;
  * ClientSettings}, which knows it.
  *
  * <p>Schema history: 2 added {@code sheetScale} ({@code "auto"}, {@code "1"} to {@code "4"});
- * version 1 files have none and get auto, as any unknown value does.
+ * version 1 files have none and get auto, as any unknown value does. 3 added {@code
+ * confirmCommandDelete}; older files have none and keep asking.
  */
 public record ClientSettingsFile(
     int schemaVersion,
     @Nullable Boolean pauseButton,
     @Nullable String startTab,
     @Nullable String lastOpenedTab,
-    @Nullable String sheetScale) {
-  public static final int CURRENT_SCHEMA_VERSION = 2;
+    @Nullable String sheetScale,
+    @Nullable Boolean confirmCommandDelete) {
+  public static final int CURRENT_SCHEMA_VERSION = 3;
   public static final String FILE_NAME = "cheatsheet.json";
 
   public static final ClientSettingsFile DEFAULTS = from(ClientPreferences.DEFAULTS);
@@ -31,7 +33,8 @@ public record ClientSettingsFile(
         preferences.pauseButton(),
         preferences.startTab(),
         preferences.lastOpenedTab(),
-        preferences.sheetScale().id());
+        preferences.sheetScale().id(),
+        preferences.confirmCommandDelete());
   }
 
   public ClientPreferences toPreferences() {
@@ -40,7 +43,8 @@ public record ClientSettingsFile(
         orDefault(pauseButton, defaults.pauseButton()),
         orDefault(startTab, defaults.startTab()),
         orDefault(lastOpenedTab, defaults.lastOpenedTab()),
-        sheetScale == null ? defaults.sheetScale() : SheetScale.fromId(sheetScale));
+        sheetScale == null ? defaults.sheetScale() : SheetScale.fromId(sheetScale),
+        orDefault(confirmCommandDelete, defaults.confirmCommandDelete()));
   }
 
   private static <T> T orDefault(@Nullable T value, T defaultValue) {
